@@ -21,6 +21,8 @@ Pyrogram + PyTgCalls se bana ek chhota, tez Telegram music bot.
 ├── GitHub/                   ← credits (@Nexor_blaze)
 │   ├── CREDITS.md
 │   └── AUTHOR.md
+├── Nexor_api/                ← free STREAM_API_KEY kaise generate karein
+│   └── README.md
 ├── Dockerfile
 ├── Procfile
 ├── requirements.txt

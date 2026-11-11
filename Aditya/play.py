@@ -146,7 +146,7 @@ def _btn(text: str, *, style: str = "primary", **kwargs) -> InlineKeyboardButton
 
 
 def _controls_keyboard(elapsed_sec=None, total_sec=None) -> InlineKeyboardMarkup:
-    """Now Playing card ke buttons: progress bar → ▶️ ⏸ 🔁 ⏭ ⏹ → 15s+ → close."""
+    """Now Playing card ke buttons: progress bar → ▶️ ⏸ 🔁 ⏭ ⏹ → 15s- 15s+ → close."""
     rows = []
     if total_sec and total_sec > 0:
         rows.append([_btn(progress.render_button_bar(elapsed_sec or 0, total_sec),
@@ -158,7 +158,10 @@ def _controls_keyboard(elapsed_sec=None, total_sec=None) -> InlineKeyboardMarkup
         _btn("⏭️", callback_data="m_skip", style="success"),
         _btn("⏹️", callback_data="m_stop", style="danger"),
     ])
-    rows.append([_btn("15s+", callback_data="m_seek_fwd", style="success")])
+    rows.append([
+        _btn("15s-", callback_data="m_seek_bwd", style="primary"),
+        _btn("15s+", callback_data="m_seek_fwd", style="success"),
+    ])
     rows.append([_btn(smallcaps_title("close"), callback_data="m_close", style="danger")])
     return InlineKeyboardMarkup(rows)
 
@@ -171,10 +174,7 @@ def _start_keyboard(bot_username: str) -> InlineKeyboardMarkup:
             _btn(smallcaps("updates"), url=config.CHANNEL_URL, style="primary"),
             _btn(smallcaps("support"), url=config.SUPPORT_URL, style="success"),
         ],
-        [
-            _btn(smallcaps("owner"), url=config.OWNER_URL, style="success"),
-            _btn(smallcaps("source code"), url=config.SOURCE_URL, style="danger"),
-        ],
+        [_btn(smallcaps("owner"), url=config.OWNER_URL, style="success")],
     ])
 
 
@@ -734,7 +734,7 @@ async def controls_callback(client, cq: CallbackQuery):
     action = cq.data
 
     # m_progress (sirf display) aur m_close (sirf panel hide) koi bhi dabaa sakta hai
-    if action in ("m_resume", "m_pause", "m_replay", "m_skip", "m_stop", "m_seek_fwd"):
+    if action in ("m_resume", "m_pause", "m_replay", "m_skip", "m_stop", "m_seek_fwd", "m_seek_bwd"):
         if not await _can_control(chat_id, cq.from_user.id):
             return await cq.answer(NOT_YOUR_REQUEST_TEXT, show_alert=True)
 
@@ -773,6 +773,18 @@ async def controls_callback(client, cq: CallbackQuery):
                 progress.resume(chat_id)
             q.set_state(chat_id, "playing")
             await cq.answer("⏩ +15s")
+
+        elif action == "m_seek_bwd":
+            track = q.get_now_playing(chat_id)
+            if not track:
+                return await cq.answer(NOTHING_PLAYING_TEXT, show_alert=True)
+            new_pos = max(0, progress.elapsed(chat_id) - 15)
+            await call_py.change_stream(chat_id, await _piped(track, new_pos))
+            progress.seek_to(chat_id, new_pos)
+            if progress.is_paused(chat_id):
+                progress.resume(chat_id)
+            q.set_state(chat_id, "playing")
+            await cq.answer("⏪ -15s")
 
         elif action == "m_skip":
             await cq.answer("⏭ Skipping")
