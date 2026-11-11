@@ -1,6 +1,0 @@
-__pycache__/
-*.pyc
-downloads/
-.env
-.git
-.gitignore
